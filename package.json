@@ -1,0 +1,32 @@
+{
+  "name": "node-websocket",
+  "version": "1.0.0",
+  "description": "Node.js websocket program",
+  "main": "bin/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gauravmahto/node-websocket.git"
+  },
+  "author": "Gaurav Mahto",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gauravmahto/node-websocket/issues"
+  },
+  "homepage": "https://github.com/gauravmahto/node-websocket#readme",
+  "dependencies": {
+    "app-module-path": "2.2.0",
+    "moment": "2.21.0",
+    "winston": "2.4.1",
+    "winston-daily-rotate-file": "3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "9.4.7",
+    "@types/winston": "2.3.8",
+    "typescript": "2.7.2",
+    "tslint": "5.9.1"
+  }
+}
