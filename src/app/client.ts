@@ -7,9 +7,10 @@ import '../global';
 
 import { client as WebSocketClient } from 'websocket';
 
+import { appConfig } from 'config';
 import { createLogger } from 'libs/utils';
 
-import { getIPs } from './poll-ip';
+import { getIPs } from './ips';
 
 const logger = createLogger('client');
 
@@ -28,6 +29,8 @@ client.on('connect', (connection) => {
 
   connection.on('close', () => {
     logger.info('echo-protocol Connection Closed');
+
+    process.exit(1);
   });
 
   connection.on('message', (message) => {
@@ -36,22 +39,26 @@ client.on('connect', (connection) => {
     }
   });
 
+  let lastIP: string = '';
   // Send the IP every sec.
   (function sendIP() {
+
     if (connection.connected) {
       const ips = getIPs();
       const newIP = ips.find((ip) => {
         return (ip.split('.')[0] === '10');
       });
 
-      if (typeof newIP !== 'undefined') {
+      if (typeof newIP !== 'undefined' && lastIP !== newIP) {
+        lastIP = newIP;
         connection.sendUTF(newIP.toString());
       }
 
-      setTimeout(sendIP, 1000);
+      setTimeout(sendIP, appConfig.client.updateInterval);
     }
   }());
 
 });
 
-client.connect('ws://localhost:8080/', 'echo-protocol');
+client.connect(`ws://localhost:${appConfig.server.port}/`,
+  appConfig.client.protocol, appConfig.client.origin);

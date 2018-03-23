@@ -24,5 +24,17 @@ export const appConfig = {
       json: false,
       timestamp: true
     }
+  },
+
+  server: {
+    port: 3897,
+    protocol: 'perforce-trigger-websocket',
+    acceptOrigin: 'some-known-origin'
+  },
+
+  client: {
+    updateInterval: 1800000,  // In secs
+    protocol: 'perforce-trigger-websocket',
+    origin: 'some-known-origin'
   }
 };
