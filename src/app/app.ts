@@ -7,10 +7,10 @@ import '../global';
 
 import util from 'util';
 
-import { logger } from 'libs/utils';
+import { createLogger } from 'libs/utils';
 
 // Application entry.
-
+const logger = createLogger('app');
 logger.info('** App entry **');
 
 const args: string[] = [];
@@ -22,5 +22,5 @@ if (require.main === module) {
   logger.info('Passed args:', util.inspect(args));
 
 } else {
-  // Required by another module.
+  // Required by an another module.
 }

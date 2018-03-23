@@ -16,48 +16,68 @@ import { appConfig } from 'config';
 
 import { makePathSync } from './functions';
 
-const logConfig = JSON.parse(JSON.stringify(appConfig.log));
-if (logConfig.console.timestamp) {
-  logConfig.console.timestamp = () => moment().format('DD-MM-YYYY HH:mm:ss');
-}
-if (logConfig.file.timestamp) {
-  logConfig.file.timestamp = () => moment().format('DD-MM-YYYY HH:mm:ss');
-}
+function enableTimestamp(logConfig: any) {
 
-const transports: winston.TransportInstance[] = [];
-let logger: winston.LoggerInstance;
-
-// Add file based logger transport.
-if (logConfig.file) {
-
-  const fileConfig = logConfig.file;
-
-  // Make path relative to the root dir.
-  fileConfig.filename = path.join(global.DATA_DIR,
-    fileConfig.dir, fileConfig.filename);
-  // Apply default transport label.
-  fileConfig.label = process.pid.toString();
-
-  // Make path to log file.
-  makePathSync(fileConfig.filename);
-
-  transports.push(new winston.transports.DailyRotateFile(fileConfig));
+  if (logConfig.console.timestamp) {
+    logConfig.console.timestamp = () => moment().format('DD-MM-YYYY HH:mm:ss');
+  }
+  if (logConfig.file.timestamp) {
+    logConfig.file.timestamp = () => moment().format('DD-MM-YYYY HH:mm:ss');
+  }
 
 }
 
-// Add console based logger transport.
-if (logConfig.console) {
+function getTransports(logConfig: any, label: string): winston.TransportInstance[] {
 
-  // Apply default transport label.
-  logConfig.console.label = process.pid.toString();
-  transports.push(new winston.transports.Console(logConfig.console));
+  const transports: winston.TransportInstance[] = [];
+
+  label = label || 'default';
+
+  enableTimestamp(logConfig);
+
+  // Add file based logger transport.
+  if (logConfig.file) {
+
+    const fileConfig = logConfig.file;
+
+    // Make path relative to the root dir.
+    fileConfig.filename = path.join(global.DATA_DIR,
+      fileConfig.dir, fileConfig.filename);
+    // Apply default transport label.
+    fileConfig.label = (process.pid.toString() + ':' + label);
+
+    // Make path to log file.
+    makePathSync(fileConfig.filename);
+
+    transports.push(new winston.transports.DailyRotateFile(fileConfig));
+
+  }
+
+  // Add console based logger transport.
+  if (logConfig.console) {
+
+    // Apply default transport label.
+    logConfig.console.label = (process.pid.toString() + ':' + label);
+    transports.push(new winston.transports.Console(logConfig.console));
+
+  }
+
+  return transports;
 
 }
 
 // Create a new logger instance.
-logger = new winston.Logger({
-  transports: transports
-});
-logger.level = logConfig.level || 'debug';
+export function createLogger(label = 'default'): winston.LoggerInstance {
 
-export { logger };
+  const logConfig = JSON.parse(JSON.stringify(appConfig.log));
+
+  const loggerInstance = new winston.Logger({
+    transports: getTransports(logConfig, label)
+  });
+  loggerInstance.level = logConfig.level || 'debug';
+
+  return loggerInstance;
+
+}
+
+export const logger = createLogger();
