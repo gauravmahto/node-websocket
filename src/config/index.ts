@@ -34,6 +34,11 @@ export const appConfig = {
     }
   },
 
+  ciServer: {
+    address: '192.168.127.135',
+    port: 8080
+  },
+
   webServer: {
     port: 8099,
     address: ''

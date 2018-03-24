@@ -10,7 +10,7 @@ import { request } from 'http';
 import express from 'express';
 
 import { appConfig } from 'config';
-import { createLogger } from 'libs/utils';
+import { createLogger, getArgKeyVal } from 'libs/utils';
 
 import { createWebSocketServer, getExistingIP, registerWebSocketServer } from './server';
 
@@ -19,8 +19,12 @@ const logger = createLogger('app');
 
 const app: express.Express = express();
 
-createWebSocketServer();
-registerWebSocketServer();
+const isProxyServer = (getArgKeyVal('mode', process.argv).val === 'proxy');
+
+if (isProxyServer) {
+  createWebSocketServer();
+  registerWebSocketServer();
+}
 
 function redirectReqToServer(user: string, changeList: string): void {
 
@@ -45,6 +49,25 @@ function redirectReqToServer(user: string, changeList: string): void {
 
 }
 
+export function triggerCIBuild(user = 'N/A', changeList = 'N/A'): void {
+
+  logger.info(`#triggerCIBuild - Provided options - user:${user}, changeList:${changeList}.`);
+
+  const req = request({
+    host: appConfig.ciServer.address,
+    port: appConfig.ciServer.port,
+    method: 'GET',
+    path: `/job/NodeJS/buildWithParameters?token=buildNodeJS&cause=TriggeredBy${user}&P4_CHANGELIST=${changeList}`
+  });
+
+  req.on('error', (err: any) => {
+    logger.error(err);
+  });
+
+  req.end();
+
+}
+
 function listener(err: NodeJS.ErrnoException) {
 
   if (err) {
@@ -63,7 +86,14 @@ app.get('/processP4Trigger/:user/:changeList', (req, res) => {
   const changeList = req.params.changeList;
 
   logger.info(`Received req: user: ${user}, changeList: ${changeList}`);
-  redirectReqToServer(user, changeList);
+
+  if (isProxyServer) {
+    logger.info('Proxy mode. Redirecting received request.');
+    redirectReqToServer(user, changeList);
+  } else {
+    logger.info('Normal mode. Triggering CI build.');
+    triggerCIBuild(user, changeList);
+  }
 
   res.status(200)
     .end();
