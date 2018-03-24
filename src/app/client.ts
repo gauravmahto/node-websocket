@@ -17,14 +17,14 @@ const logger = createLogger('client');
 const client = new WebSocketClient();
 
 client.on('connectFailed', (error) => {
-  logger.info(`Connect Error: ${error.toString()}`);
+  logger.error(`Connect Error: ${error.toString()}`);
 });
 
 client.on('connect', (connection) => {
   logger.info('WebSocket Client Connected');
 
   connection.on('error', (error) => {
-    logger.info(`Connection Error: ${error.toString()}`);
+    logger.error(`Connection Error: ${error.toString()}`);
   });
 
   connection.on('close', () => {
@@ -60,5 +60,5 @@ client.on('connect', (connection) => {
 
 });
 
-client.connect(`ws://localhost:${appConfig.server.port}/`,
+client.connect(`ws://${appConfig.server.address}:${appConfig.server.port}/`,
   appConfig.client.protocol, appConfig.client.origin);

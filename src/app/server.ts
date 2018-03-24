@@ -10,28 +10,28 @@ import http from 'http';
 import { connection, server as WebSocketServer } from 'websocket';
 
 import { appConfig } from 'config';
-import { createLogger } from 'libs/utils';
+import { createLogger, defaultDataStore } from 'libs/utils';
 
 const logger = createLogger('server');
+let wsServer: WebSocketServer;
 
-const server = http.createServer((request, response) => {
-  logger.info(`Received request for ${request.url}`);
-  response.writeHead(404);
-  response.end();
-});
-server.listen(appConfig.server.port, () => {
-  logger.info(`Server is listening on port ${appConfig.server.port}.`);
-});
+function addOrUpdateIP(ip: string) {
+  const name = 'perforce-trigger-handler';
+  const data = {
+    name: name,
+    ip: ip,
+    port: appConfig.webServer.port,
+    timeStamp: Date.now()
+  };
+  const existingData = getExistingIP();
 
-const wsServer = new WebSocketServer({
-  httpServer: server,
-  // You should not use autoAcceptConnections for production
-  // applications, as it defeats all standard cross-origin protection
-  // facilities built into the protocol and the browser.  You should
-  // *always* verify the connection's origin and decide whether or not
-  // to accept it.
-  autoAcceptConnections: false
-});
+  if (existingData.length === 1) {
+    Object.assign(existingData[0], data);
+    defaultDataStore.defaultCollection!.update(existingData);
+  } else {
+    defaultDataStore.defaultCollection!.insert(data);
+  }
+}
 
 function originIsAllowed(origin: string) {
   // Detect whether the specified origin is allowed.
@@ -40,47 +40,92 @@ function originIsAllowed(origin: string) {
   return (appConfig.server.acceptOrigin === origin);
 }
 
-wsServer.on('request', (request) => {
-  if (!originIsAllowed(request.origin)) {
-    // Make sure we only accept requests from an allowed origin.
-    request.reject();
-    logger.info('Connection from origin ' + request.origin + ' rejected.');
+export function getExistingIP(): any[] {
+  const name = 'perforce-trigger-handler';
+
+  return defaultDataStore.defaultCollection!.where((item) => {
+    return (item.name === name);
+  });
+}
+
+export function createWebSocketServer(): void {
+
+  const server = http.createServer((request, response) => {
+    logger.info(`Received request for ${request.url}`);
+    response.writeHead(404);
+    response.end();
+  });
+  server.listen(appConfig.server.port, appConfig.server.address, () => {
+    logger.info(`WebSocket Server is now listening on port ${appConfig.server.port}.`);
+  });
+  server.on('error', (err: any) => {
+    logger.error(err);
+  });
+
+  wsServer = new WebSocketServer({
+    httpServer: server,
+    // You should not use autoAcceptConnections for production
+    // applications, as it defeats all standard cross-origin protection
+    // facilities built into the protocol and the browser.  You should
+    // *always* verify the connection's origin and decide whether or not
+    // to accept it.
+    autoAcceptConnections: false
+  });
+
+}
+
+export function registerWebSocketServer(): void {
+
+  if (typeof wsServer === 'undefined') {
+    logger.error('wsServer is not created.');
 
     return;
   }
 
-  let conn: connection | undefined;
+  wsServer.on('request', (request) => {
+    if (!originIsAllowed(request.origin)) {
+      // Make sure we only accept requests from an allowed origin.
+      request.reject();
+      logger.error('Connection from origin ' + request.origin + ' rejected.');
 
-  try {
-    conn = request.accept(appConfig.server.protocol, request.origin);
-  } catch (err) {
-    logger.error(err);
-  }
+      return;
+    }
 
-  if (typeof conn !== 'undefined') {
+    let conn: connection | undefined;
 
-    logger.info('Connection accepted.');
-    conn.on('message', (message) => {
+    try {
+      conn = request.accept(appConfig.server.protocol, request.origin);
+    } catch (err) {
+      logger.error(err);
+    }
 
-      if (!conn) {
-        return;
-      }
+    if (typeof conn !== 'undefined') {
 
-      if (message.type === 'utf8') {
-        logger.info('Received Message: ' + message.utf8Data);
-        conn.sendUTF(message.utf8Data!);
-      } else if (message.type === 'binary') {
-        logger.info(`Received Binary Message of ${message.binaryData!.length} bytes.`);
-        conn.sendBytes(message.binaryData!);
-      }
-    });
+      logger.info('Connection accepted.');
+      conn.on('message', (message) => {
 
-    conn.on('close', (reasonCode, description) => {
-      if (conn) {
-        logger.info(`Peer ${conn.remoteAddress} disconnected.`);
-      }
-    });
+        if (!conn) {
+          return;
+        }
 
-  }
+        if (message.type === 'utf8') {
+          logger.info('Received Message: ' + message.utf8Data);
+          addOrUpdateIP(message.utf8Data!);
+          conn.sendUTF(message.utf8Data!);
+        } /* else if (message.type === 'binary') {
+          logger.info(`Received Binary Message of ${message.binaryData!.length} bytes.`);
+          conn.sendBytes(message.binaryData!);
+        } */
+      });
 
-});
+      conn.on('close', (reasonCode, description) => {
+        if (conn) {
+          logger.info(`Peer ${conn.remoteAddress} disconnected.`);
+        }
+      });
+
+    }
+
+  });
+
+}

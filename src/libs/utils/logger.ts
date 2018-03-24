@@ -42,7 +42,7 @@ function getTransports(logConfig: any, label: string): winston.TransportInstance
 
     // Make path relative to the root dir.
     fileConfig.filename = path.join(global.DATA_DIR,
-      fileConfig.dir, fileConfig.filename);
+      logConfig.dir, fileConfig.filename);
     // Apply default transport label.
     fileConfig.label = (process.pid.toString() + ':' + label);
 
