@@ -56,7 +56,7 @@ export function createWebSocketServer(): void {
     response.end();
   });
   server.listen(appConfig.server.port, appConfig.server.address, () => {
-    logger.info(`WebSocket Server is now listening on port ${appConfig.server.port}.`);
+    logger.info(`WebSocket Server is now listening on: ${appConfig.server.address}:${appConfig.server.port}.`);
   });
   server.on('error', (err: any) => {
     logger.error(err);
@@ -77,7 +77,7 @@ export function createWebSocketServer(): void {
 export function registerWebSocketServer(): void {
 
   if (typeof wsServer === 'undefined') {
-    logger.error('wsServer is not created.');
+    logger.error('WebSocket Server is not created.');
 
     return;
   }

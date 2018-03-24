@@ -12,6 +12,7 @@ import express from 'express';
 import { appConfig } from 'config';
 import { createLogger, getArgKeyVal } from 'libs/utils';
 
+import { createWebSocketClient, registerWebSocketClient } from './client';
 import { createWebSocketServer, getExistingIP, registerWebSocketServer } from './server';
 
 // Application entry.
@@ -24,6 +25,9 @@ const isProxyServer = (getArgKeyVal('mode', process.argv).val === 'proxy');
 if (isProxyServer) {
   createWebSocketServer();
   registerWebSocketServer();
+} else {
+  createWebSocketClient();
+  registerWebSocketClient();
 }
 
 function redirectReqToServer(user: string, changeList: string): void {

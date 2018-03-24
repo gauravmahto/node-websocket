@@ -14,51 +14,65 @@ import { getIPs } from './ips';
 
 const logger = createLogger('client');
 
-const client = new WebSocketClient();
+let client: WebSocketClient;
 
-client.on('connectFailed', (error) => {
-  logger.error(`Connect Error: ${error.toString()}`);
-});
+export function createWebSocketClient(): void {
+  client = new WebSocketClient();
+}
 
-client.on('connect', (connection) => {
-  logger.info('WebSocket Client Connected');
+export function registerWebSocketClient(): void {
 
-  connection.on('error', (error) => {
-    logger.error(`Connection Error: ${error.toString()}`);
+  if (typeof client === 'undefined') {
+    logger.error('WebSocket Client is not created.');
+
+    return;
+  }
+
+  client.on('connectFailed', (error) => {
+    logger.error(`Connect Error: ${error.toString()}`);
   });
 
-  connection.on('close', () => {
-    logger.info('echo-protocol Connection Closed');
+  client.on('connect', (connection) => {
+    logger.info('WebSocket Client Connected');
 
-    process.exit(1);
-  });
+    connection.on('error', (error) => {
+      logger.error(`Connection Error: ${error.toString()}`);
+    });
 
-  connection.on('message', (message) => {
-    if (message.type === 'utf8') {
-      logger.info(`Received: '${message.utf8Data}'`);
-    }
-  });
+    connection.on('close', () => {
+      logger.info(`${appConfig.client.protocol}: Connection Closed`);
 
-  let lastIP: string = '';
-  // Send the IP every sec.
-  (function sendIP() {
+      process.exit(1);
+    });
 
-    if (connection.connected) {
-      const ips = getIPs();
-      const newIP = ips.find((ip) => {
-        return (ip.split('.')[0] === '10');
-      });
-
-      if (typeof newIP !== 'undefined' && lastIP !== newIP) {
-        lastIP = newIP;
-        connection.sendUTF(newIP.toString());
+    connection.on('message', (message) => {
+      if (message.type === 'utf8') {
+        logger.info(`Received: '${message.utf8Data}'`);
       }
+    });
 
-      setTimeout(sendIP, appConfig.client.updateInterval);
-    }
-  }());
+    let lastIP: string = '';
+    // Send the IP every sec.
+    (function sendIP() {
 
-});
+      if (connection.connected) {
+        const ips = getIPs();
+        const newIP = ips.find((ip) => {
+          return (ip.split('.')[0] === '10');
+        });
 
-client.connect(`ws://${appConfig.server.address}:${appConfig.server.port}/`,
-  appConfig.client.protocol, appConfig.client.origin);
+        if (typeof newIP !== 'undefined' && lastIP !== newIP) {
+          lastIP = newIP;
+          connection.sendUTF(newIP.toString());
+        }
+
+        setTimeout(sendIP, appConfig.client.updateInterval);
+      }
+    }());
+
+  });
+
+  client.connect(`ws://${appConfig.server.address}:${appConfig.server.port}/`,
+    appConfig.client.protocol, appConfig.client.origin);
+
+}
