@@ -15,12 +15,12 @@ import { createLogger, defaultDataStore } from 'libs/utils';
 const logger = createLogger('server');
 let wsServer: WebSocketServer;
 
-function addOrUpdateIP(ip: string) {
+function addOrUpdateIP(ip: string, port: number) {
   const name = 'perforce-trigger-handler';
   const data = {
     name: name,
     ip: ip,
-    port: appConfig.webServer.port,
+    port: port,
     timeStamp: Date.now()
   };
   const existingData = getExistingIP();
@@ -110,7 +110,10 @@ export function registerWebSocketServer(): void {
 
         if (message.type === 'utf8') {
           logger.info('Received Message: ' + message.utf8Data);
-          addOrUpdateIP(message.utf8Data!);
+          const [address, port] = message.utf8Data!.split(':');
+          let nPort = Number(port);
+          nPort = Number.isNaN(nPort) ? 80 : nPort;
+          addOrUpdateIP(address, nPort);
           conn.sendUTF(message.utf8Data!);
         } /* else if (message.type === 'binary') {
           logger.info(`Received Binary Message of ${message.binaryData!.length} bytes.`);
