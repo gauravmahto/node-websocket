@@ -14,6 +14,7 @@ import { getIPs } from './ips';
 
 const logger = createLogger('client');
 
+let connectionAttemptInterval = 10;
 let client: WebSocketClient;
 
 export function createWebSocketClient(): void {
@@ -30,6 +31,15 @@ export function registerWebSocketClient(): void {
 
   client.on('connectFailed', (error) => {
     logger.error(`Connect Error: ${error.toString()}`);
+    logger.info(`Will retry the connection after ${connectionAttemptInterval} seconds.`);
+
+    setTimeout(() => {
+      // Increment the interval by 10 secs.
+      connectionAttemptInterval += 10;
+      logger.info(`Connection attempt #${connectionAttemptInterval / 10}.`);
+      client.connect(`ws://${appConfig.server.address}:${appConfig.server.port}/`,
+        appConfig.client.protocol, appConfig.client.origin);
+    }, (connectionAttemptInterval * 1000));
   });
 
   client.on('connect', (connection) => {
@@ -63,7 +73,7 @@ export function registerWebSocketClient(): void {
 
         if (typeof newIP !== 'undefined' && lastIP !== newIP) {
           lastIP = newIP;
-          connection.sendUTF(newIP.toString() + appConfig.webServer.port.toString());
+          connection.sendUTF(newIP.toString() + ':' + appConfig.webServer.port.toString());
         }
 
         setTimeout(sendIP, appConfig.client.updateInterval);
