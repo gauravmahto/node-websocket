@@ -62,8 +62,8 @@ export function registerWebSocketClient(): void {
         });
 
         if (typeof newIP !== 'undefined' && lastIP !== newIP) {
-          lastIP = (newIP.toString() + appConfig.webServer.port.toString());
-          connection.sendUTF(newIP);
+          lastIP = newIP;
+          connection.sendUTF(newIP.toString() + appConfig.webServer.port.toString());
         }
 
         setTimeout(sendIP, appConfig.client.updateInterval);
