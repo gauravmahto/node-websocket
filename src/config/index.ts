@@ -2,6 +2,9 @@
  * Copyright 2018 - Author gauravm.git@gmail.com
  */
 
+/**
+ * Application configurations.
+ */
 export const appConfig = {
   log: {
     level: 'silly',

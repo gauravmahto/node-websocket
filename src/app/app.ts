@@ -15,13 +15,16 @@ import { createLogger, getArgKeyVal } from 'libs/utils';
 import { createWebSocketClient, registerWebSocketClient } from './client';
 import { createWebSocketServer, getExistingIP, registerWebSocketServer } from './server';
 
-// Application entry.
 const logger = createLogger('app');
+
+// Application entry.
 
 const app: express.Express = express();
 
+// Get whether the app mode is proxy or not.
 const isProxyServer = (getArgKeyVal('mode', process.argv).val === 'proxy');
 
+// Create and register server/client.
 if (isProxyServer) {
   createWebSocketServer();
   registerWebSocketServer();
@@ -30,6 +33,9 @@ if (isProxyServer) {
   registerWebSocketClient();
 }
 
+/**
+ * Redirect the incoming req to main server.
+ */
 function redirectReqToServer(user: string, changeList: string): void {
 
   const existingData = getExistingIP();
@@ -53,6 +59,9 @@ function redirectReqToServer(user: string, changeList: string): void {
 
 }
 
+/**
+ * Trigger a CI build.
+ */
 export function triggerCIBuild(user = 'N/A', changeList = 'N/A'): void {
 
   logger.info(`#triggerCIBuild - Provided options - user:${user}, changeList:${changeList}.`);
@@ -72,6 +81,9 @@ export function triggerCIBuild(user = 'N/A', changeList = 'N/A'): void {
 
 }
 
+/**
+ * WebServer listener.
+ */
 function listener(err: NodeJS.ErrnoException) {
 
   if (err) {

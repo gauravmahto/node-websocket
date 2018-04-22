@@ -8,6 +8,9 @@ import { createLogger } from 'libs/utils';
 
 const logger = createLogger('poll-ip');
 
+/**
+ * Get all the IPs.
+ */
 export function getIPs(): string[] {
 
   const ifaces = networkInterfaces();

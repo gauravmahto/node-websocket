@@ -15,6 +15,7 @@ import { createLogger, defaultDataStore } from 'libs/utils';
 const logger = createLogger('server');
 let wsServer: WebSocketServer;
 
+// Store the IP address.
 function addOrUpdateIP(ip: string, port: number) {
   const name = 'perforce-trigger-handler';
   const data = {
@@ -33,6 +34,7 @@ function addOrUpdateIP(ip: string, port: number) {
   }
 }
 
+// Only allow specific origin.
 function originIsAllowed(origin: string) {
   // Detect whether the specified origin is allowed.
   logger.info(`Origin: ${origin}`);
@@ -40,6 +42,7 @@ function originIsAllowed(origin: string) {
   return (appConfig.server.acceptOrigin === origin);
 }
 
+// Get the IP.
 export function getExistingIP(): any[] {
   const name = 'perforce-trigger-handler';
 
@@ -48,6 +51,9 @@ export function getExistingIP(): any[] {
   });
 }
 
+/**
+ * Create a web socket server.
+ */
 export function createWebSocketServer(): void {
 
   const server = http.createServer((request, response) => {
@@ -74,6 +80,9 @@ export function createWebSocketServer(): void {
 
 }
 
+/**
+ * Register a web socket server and start listening for events.
+ */
 export function registerWebSocketServer(): void {
 
   if (typeof wsServer === 'undefined') {
@@ -82,6 +91,7 @@ export function registerWebSocketServer(): void {
     return;
   }
 
+  // Request listener.
   wsServer.on('request', (request) => {
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin.
@@ -93,6 +103,7 @@ export function registerWebSocketServer(): void {
 
     let conn: connection | undefined;
 
+    // Accept the connection based on the allowed origin.
     try {
       conn = request.accept(appConfig.server.protocol, request.origin);
     } catch (err) {
@@ -102,6 +113,8 @@ export function registerWebSocketServer(): void {
     if (typeof conn !== 'undefined') {
 
       logger.info('Connection accepted.');
+
+      // Message listener.
       conn.on('message', (message) => {
 
         if (!conn) {
@@ -121,6 +134,7 @@ export function registerWebSocketServer(): void {
         } */
       });
 
+      // Close listener.
       conn.on('close', (reasonCode, description) => {
         if (conn) {
           logger.info(`Peer ${conn.remoteAddress} disconnected.`);
