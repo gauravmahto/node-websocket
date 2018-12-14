@@ -3,3 +3,6 @@
 
 # Ignore ./bin dir
 bin
+
+# VSCode history files
+.history
